@@ -26,7 +26,7 @@ A C++ High Performance NetServer (version 0.1.0)
     ./httpserver
     
 ## Tech
- * 基于epoll的IO复用机制，采用边缘触发（ET）模式，和非阻塞模式
+ * 基于epoll的IO复用机制实现Reactor模式，采用边缘触发（ET）模式，和非阻塞模式
  * 由于采用ET模式，read、write和accept的时候必须采用循环的方式，直到error==EAGAIN为止，防止漏读等清况，这样的效率会比LT模式高很多，减少了触发次数
  * 目前基于单线程实现，接下来继续进行多线程开发，基于one loop per thread的IO模式
  * 支持HTTP长连接
