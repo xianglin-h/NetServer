@@ -28,7 +28,8 @@ A C++ High Performance NetServer (version 0.1.0)
 ## Tech
  * 基于epoll的IO复用机制实现Reactor模式，采用边缘触发（ET）模式，和非阻塞模式
  * 由于采用ET模式，read、write和accept的时候必须采用循环的方式，直到error==EAGAIN为止，防止漏读等清况，这样的效率会比LT模式高很多，减少了触发次数
- * 目前基于单线程实现，接下来继续进行多线程开发，基于one loop per thread的IO模式
+ * Version-0.1.0基于单线程实现，Version-0.2.0利用线程池实现多IO线程，基于one loop per thread的IO模式
+ * 线程模型将划分为主线程、IO线程和worker线程，主线程接收客户端连接（accept），并通过Round-Robin策略分发给IO线程，IO线程负责连接管理（即事件监听和读写操作），worker线程负责业务计算任务（即对数据进行处理）
  * 支持HTTP长连接
  * 支持优雅关闭连接
    * 通常情况下，由客户端主动发起FIN关闭连接
@@ -71,6 +72,10 @@ See [LICENSE](https://github.com/chenshuaihao/NetServer/blob/master/LICENSE)
 
 ## Roadmap
 多线程、线程池、定时器、日志系统、内存池等
+
+## Develop and Fix List
+* 2019-02-21 Dev: 实现IO线程池，由EventLoopThreadPool类对IO线程进行管理，主线程accept客户端连接，并通过Round-Robin策略分发给IO线程，IO线程负责事件监听、读写操作和业务计算
+* 2019-02-21 Fix: 修复多线程下HttpServer::HandleMessage函数中phttpsession可能为NULL，导致出现SegmentFault的情况。因为新连接事件过早的添加到epoll中，而HttpSession还没new，如果这时候有数据来时，会出现phttpsession==NULL，无法处理数据，段错误。
 
 ## Others
 本项目将一直进行开发和维护，也非常欢迎各位小伙伴提出建议，共同学习，共同进步！
