@@ -6,7 +6,7 @@ SRC = $(wildcard $(DIR_SRC)/*.cpp)
 OBJ = $(patsubst %.cpp,$(DIR_OBJ)/%.o,$(notdir $(SRC)))
 
 
-CXX_FLAG = -g -Wall -std=c++11 -O3
+CXX_FLAG = -g -Wall -std=c++11 -pthread -O3
 CC = g++
 
 TARGET = httpserver
