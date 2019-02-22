@@ -65,13 +65,19 @@ void Poller::poll(ChannelList &activechannellist)
         //int fd = eventlist_[i].data.fd;
         Channel *pchannel = (Channel*)eventlist_[i].data.ptr;
         int fd = pchannel->GetFd();
-        if(channelmap_.find(fd) != channelmap_.end())
+        
+        std::map<int, Channel*>::const_iterator iter;
+        {
+            std::lock_guard <std::mutex> lock(mutex_);
+            iter = channelmap_.find(fd);
+        }        
+        if(iter != channelmap_.end())
         {
             pchannel->SetEvents(events);
             activechannellist.push_back(pchannel);
         }
         else
-        {
+        {            
             std::cout << "not find channel!" << std::endl;
         }
     }
@@ -93,7 +99,10 @@ void Poller::AddChannel(Channel *pchannel)
     //data是联合体
     //ev.data.fd = fd;
     ev.data.ptr = pchannel;
-    channelmap_[fd] = pchannel;
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        channelmap_[fd] = pchannel;
+    }      
 
     if(epoll_ctl(pollfd_, EPOLL_CTL_ADD, fd, &ev) == -1)
     {
@@ -111,7 +120,10 @@ void Poller::RemoveChannel(Channel *pchannel)
     ev.events = pchannel->GetEvents();
     ///ev.data.fd = fd;
     ev.data.ptr = pchannel;
-    channelmap_.erase(fd);
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        channelmap_.erase(fd);
+    }    
 
     if(epoll_ctl(pollfd_, EPOLL_CTL_DEL, fd, &ev) == -1)
     {

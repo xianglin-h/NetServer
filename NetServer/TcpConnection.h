@@ -29,6 +29,8 @@ public:
     int fd()
     { return fd_; }
     //void FillBuffout(std::string &s);
+
+    void AddChannelToLoop();
     void Send(std::string &s);
     void HandleRead();
     void HandleWrite();

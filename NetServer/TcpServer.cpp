@@ -17,9 +17,10 @@
 
 void Setnonblocking(int fd);
 
-TcpServer::TcpServer(EventLoop* loop, int port)
+TcpServer::TcpServer(EventLoop* loop, int port, int threadnum)
     : serversocket_(),
     loop_(loop),
+    eventloopthreadpool(loop, threadnum),
     serverchannel_(),
     conncount_(0)
 {
@@ -37,15 +38,18 @@ TcpServer::TcpServer(EventLoop* loop, int port)
 
 TcpServer::~TcpServer()
 {
+
 }
 
 void TcpServer::Start()
 {
+    eventloopthreadpool.Start();
+
     serverchannel_.SetEvents(EPOLLIN | EPOLLET);
     loop_->AddChannelToPoller(&serverchannel_);
 }
 
-//新TCP连接处理,核心功能，业务功能注册，任务分发
+//新TCP连接处理，核心功能，业务功能注册，任务分发
 void TcpServer::OnNewConnection()
 {
     //循环调用accept，获取所有的建立好连接的客户端fd
@@ -63,8 +67,11 @@ void TcpServer::OnNewConnection()
         }
         Setnonblocking(clientfd);
 
+        //选择IO线程loop
+        EventLoop *loop = eventloopthreadpool.GetNextLoop();
+
         //创建连接，注册业务函数
-        TcpConnection *ptcpconnection = new TcpConnection(loop_, clientfd, clientaddr);
+        TcpConnection *ptcpconnection = new TcpConnection(loop, clientfd, clientaddr);
         ptcpconnection->SetMessaeCallback(messagecallback_);
         ptcpconnection->SetSendCompleteCallback(sendcompletecallback_);
         ptcpconnection->SetCloseCallback(closecallback_);
@@ -73,13 +80,16 @@ void TcpServer::OnNewConnection()
         tcpconnlist_[clientfd] = ptcpconnection;
 
         newconnectioncallback_(ptcpconnection);
+        //Bug，应该把事件添加的操作放到最后,否则bug segement fault,导致HandleMessage中的phttpsession==NULL
+        //总之就是做好一切准备工作再添加事件到epoll！！！
+        ptcpconnection->AddChannelToLoop();
     }
 }
 
 //连接清理
 void TcpServer::RemoveConnection(TcpConnection *ptcpconnection)
 {
-     --conncount_;
+    --conncount_;
     //std::cout << "clean up connection, conncount is" << conncount_ << std::endl;   
     tcpconnlist_.erase(ptcpconnection->fd());
     delete ptcpconnection;

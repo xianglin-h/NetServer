@@ -8,6 +8,7 @@
 #define _POLLER_H_
 
 #include <vector>
+#include <mutex>
 #include <map>
 #include <sys/epoll.h>
 #include "Channel.h"
@@ -20,6 +21,7 @@ public:
     int pollfd_;
     std::vector<struct epoll_event> eventlist_;
     std::map<int, Channel*> channelmap_;
+    std::mutex mutex_;
 
     Poller(/* args */);
     ~Poller();

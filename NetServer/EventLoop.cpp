@@ -12,7 +12,7 @@ EventLoop::EventLoop(/* args */)
     channellist_(),
     activechannellist_(),
     poller_(),
-    quit(true)
+    quit_(true)
 {
     
 }
@@ -24,8 +24,8 @@ EventLoop::~EventLoop()
 
 void EventLoop::loop()
 {
-    quit = false;
-    while(!quit)
+    quit_ = false;
+    while(!quit_)
     {
         poller_.poll(activechannellist_);
         //std::cout << "server HandleEvent" << std::endl;

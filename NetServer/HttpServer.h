@@ -8,6 +8,7 @@
 #define _HTTP_SERVER_H_
 
 #include <string>
+#include <mutex>
 #include <map>
 #include "EventLoop.h"
 #include "TcpServer.h"
@@ -29,9 +30,10 @@ private:
     TcpServer tcpserver_;
     std::map<TcpConnection *, HttpSession*> httpsessionnlist_;//管理Http会话
     long long int cnt;
+    std::mutex mutex_;
 
 public:
-    HttpServer(EventLoop *loop, int port);
+    HttpServer(EventLoop *loop, int port, int threadnum);
     ~HttpServer();
 
     void Start();

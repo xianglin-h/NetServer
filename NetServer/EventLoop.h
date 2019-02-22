@@ -2,7 +2,7 @@
 //
 //Author: Chen Shuaihao
 //
-//
+//IO复用流程的抽象，等待事件，处理事件，执行其他任务
 
 #ifndef _EVENTLOOP_H_
 #define _EVENTLOOP_H_
@@ -33,6 +33,10 @@ public:
     {
         poller_.UpdateChannel(pchannel);
     }
+    void Quit()
+    {
+        quit_ = true;
+    }
 
     //Task
     void AddTask(Functor functor)
@@ -54,7 +58,7 @@ private:
     ChannelList channellist_;
     ChannelList activechannellist_;
     Poller poller_;
-    bool quit;
+    bool quit_;
 };
 
 

@@ -33,8 +33,9 @@ TcpConnection::TcpConnection(EventLoop *loop, int fd, struct sockaddr_in clienta
     pchannel_->SetCloseHandle(std::bind(&TcpConnection::HandleClose, this));
     pchannel_->SetErrorHandle(std::bind(&TcpConnection::HandleError, this));    
 
+	//https://blog.csdn.net/littlefang/article/details/37922113
 	//多线程下，加入loop的任务队列
-    loop_->AddChannelToPoller(pchannel_);
+    //loop_->AddChannelToPoller(pchannel_);
 }
 
 TcpConnection::~TcpConnection()
@@ -44,6 +45,14 @@ TcpConnection::~TcpConnection()
 	loop_->RemoveChannelToPoller(pchannel_);
 	delete pchannel_;
 	close(fd_);
+}
+void TcpConnection::AddChannelToLoop()
+{
+	//bug segement fault 
+	//https://blog.csdn.net/littlefang/article/details/37922113
+	//多线程下，加入loop的任务队列
+	//主线程直接执行
+    loop_->AddChannelToPoller(pchannel_);
 }
 
 void TcpConnection::Send(std::string &s)

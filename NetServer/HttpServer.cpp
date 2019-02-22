@@ -9,8 +9,8 @@
 #include "HttpServer.h"
 
 
-HttpServer::HttpServer(EventLoop *loop, int port)
-    : tcpserver_(loop, port),
+HttpServer::HttpServer(EventLoop *loop, int port, int threadnum)
+    : tcpserver_(loop, port, threadnum),
     cnt(0)
 {
     tcpserver_.SetNewConnCallback(std::bind(&HttpServer::HandleNewConnection, this, std::placeholders::_1));
@@ -29,13 +29,22 @@ void HttpServer::HandleNewConnection(TcpConnection *ptcpconn)
 {
     //std::string msg(s);
     HttpSession *phttpsession = new HttpSession();
-    httpsessionnlist_[ptcpconn] = phttpsession;
+    //可以优化成无锁，放入conn里面就行
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        httpsessionnlist_[ptcpconn] = phttpsession;//LOCK
+    }
 }
 
 void HttpServer::HandleMessage(TcpConnection *ptcpconn, std::string &s)
 {
-    //std::cout << "http num is:" << ++cnt << std::endl;   
-    HttpSession *phttpsession =  httpsessionnlist_[ptcpconn];
+    //std::cout << "http num is:" << ++cnt << std::endl;  
+    HttpSession *phttpsession = NULL;
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        phttpsession =  httpsessionnlist_[ptcpconn];
+    }    
+    //可以改造成线程池处理业务，处理完后投递回本IO线程执行send
     phttpsession->PraseHttpRequest(s);
     phttpsession->HttpProcess();
     std::string msg;
@@ -55,15 +64,23 @@ void HttpServer::HandleSendComplete(TcpConnection *ptcpconn)
 
 void HttpServer::HandleClose(TcpConnection *ptcpconn)
 {
-    HttpSession *phttpsession = httpsessionnlist_[ptcpconn];
-    httpsessionnlist_.erase(ptcpconn);
+    HttpSession *phttpsession = NULL;
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        phttpsession = httpsessionnlist_[ptcpconn];
+        httpsessionnlist_.erase(ptcpconn);//LOCK
+    }
     delete phttpsession;
 }
 
 void HttpServer::HandleError(TcpConnection *ptcpconn)
 {
-    HttpSession *phttpsession = httpsessionnlist_[ptcpconn];
-    httpsessionnlist_.erase(ptcpconn);
+    HttpSession *phttpsession = NULL;
+    {
+        std::lock_guard <std::mutex> lock(mutex_);
+        phttpsession = httpsessionnlist_[ptcpconn];
+        httpsessionnlist_.erase(ptcpconn);//LOCK
+    }
     delete phttpsession;
 }
 

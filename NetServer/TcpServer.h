@@ -14,6 +14,7 @@
 #include "Channel.h"
 #include "EventLoop.h"
 #include "TcpConnection.h"
+#include "EventLoopThreadPool.h"
 
 #define MAXCONNECTION 10000
 
@@ -23,7 +24,7 @@ public:
     //typedef std::function<void(TcpConnection*)> NewConnectionCallback;
     typedef std::function<void(TcpConnection*, std::string&)> MessageCallback;
     typedef std::function<void(TcpConnection*)> Callback;
-    TcpServer(EventLoop* loop, int port);
+    TcpServer(EventLoop* loop, int port, int threadnum = 0);
     ~TcpServer();
 
     void Start();
@@ -55,6 +56,7 @@ private:
     /* data */
     Socket serversocket_;
     EventLoop *loop_;
+    EventLoopThreadPool eventloopthreadpool;
     Channel serverchannel_;
     int conncount_;
     std::map<int, TcpConnection*> tcpconnlist_;
