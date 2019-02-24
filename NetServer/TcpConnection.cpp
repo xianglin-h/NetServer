@@ -32,10 +32,6 @@ TcpConnection::TcpConnection(EventLoop *loop, int fd, struct sockaddr_in clienta
     pchannel_->SetWriteHandle(std::bind(&TcpConnection::HandleWrite, this));
     pchannel_->SetCloseHandle(std::bind(&TcpConnection::HandleClose, this));
     pchannel_->SetErrorHandle(std::bind(&TcpConnection::HandleError, this));    
-
-	//https://blog.csdn.net/littlefang/article/details/37922113
-	//多线程下，加入loop的任务队列
-    //loop_->AddChannelToPoller(pchannel_);
 }
 
 TcpConnection::~TcpConnection()
@@ -52,12 +48,28 @@ void TcpConnection::AddChannelToLoop()
 	//https://blog.csdn.net/littlefang/article/details/37922113
 	//多线程下，加入loop的任务队列
 	//主线程直接执行
-    loop_->AddChannelToPoller(pchannel_);
+    //loop_->AddChannelToPoller(pchannel_);
+	loop_->AddTask(std::bind(&EventLoop::AddChannelToPoller, loop_, pchannel_));
 }
 
 void TcpConnection::Send(std::string &s)
 {
-    bufferout_ += s;//copy一次
+	bufferout_ += s;
+	//判断当前线程是不是Loop IO线程
+	if(loop_->GetThreadId() == std::this_thread::get_id())
+	{
+		SendInLoop();
+	}
+	else
+	{
+		//不是，则是跨线程调用,加入IO线程的任务队列，唤醒
+		loop_->AddTask(std::bind(&TcpConnection::SendInLoop, this));
+	}
+}
+
+void TcpConnection::SendInLoop()
+{
+    //bufferout_ += s;//copy一次
     int result = sendn(fd_, bufferout_);
     if(result > 0)
     {
@@ -96,7 +108,7 @@ void TcpConnection::HandleRead()
     //业务回调,可以利用工作线程池处理，投递任务
     if(result > 0)
     {
-        messagecallback_(this, bufferin_);
+        messagecallback_(this, bufferin_);//可以用右值引用优化
     }
     else if(result == 0)
     {
@@ -167,6 +179,7 @@ void TcpConnection::HandleClose()
 	{
 		//如果还有数据待发送，则先发完,设置半关闭标志位
 		halfclose_ = true;
+		//还有数据刚刚才收到，但同时又收到FIN
 		if(bufferin_.size() > 0)
 		{
 			messagecallback_(this, bufferin_);
@@ -231,7 +244,7 @@ int sendn(int fd, std::string &bufferout)
 {
 	ssize_t nbyte = 0;
     int sendsum = 0;
-	char buffer[BUFSIZE+1];
+	//char buffer[BUFSIZE+1];
 	size_t length = 0;
 	//length = bufferout.copy(buffer, BUFSIZE, 0);
 	//buffer[length] = '\0';	

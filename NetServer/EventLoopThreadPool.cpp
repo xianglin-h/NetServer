@@ -51,7 +51,7 @@ EventLoop* EventLoopThreadPool::GetNextLoop()
         EventLoop *loop = threadlist_[index_]->GetLoop();
         index_ = (index_ + 1) % threadnum_;
         return loop;
-        //LC策略
+        //LC策略,还没写
         //EventLoop *loop = threadlist_[index_]->GetLoop();
         //index_ = (index_ + 1) % threadnum_;
         //return loop;

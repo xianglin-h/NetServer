@@ -24,10 +24,9 @@ private:
     void HandleError(TcpConnection *ptcpconn);
 
     TcpServer tcpserver_;
-    long long int cnt;
 
 public:
-    EchoServer(EventLoop* loop, int port);
+    EchoServer(EventLoop* loop, int port, int threadnum);
     ~EchoServer();
 
     void Start();

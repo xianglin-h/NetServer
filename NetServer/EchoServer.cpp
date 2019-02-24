@@ -8,9 +8,8 @@
 #include <functional>
 #include "EchoServer.h"
 
-EchoServer::EchoServer(EventLoop* loop, int port)
-    : tcpserver_(loop, port),
-    cnt(0)
+EchoServer::EchoServer(EventLoop* loop, int port, int threadnum)
+    : tcpserver_(loop, port, threadnum)
 {
     tcpserver_.SetNewConnCallback(std::bind(&EchoServer::HandleNewConnection, this, std::placeholders::_1));
     tcpserver_.SetMessageCallback(std::bind(&EchoServer::HandleMessage, this, std::placeholders::_1, std::placeholders::_2));
@@ -23,6 +22,7 @@ EchoServer::~EchoServer()
 {
 
 }
+
 void EchoServer::Start()
 {
     tcpserver_.Start();
@@ -35,9 +35,6 @@ void EchoServer::HandleNewConnection(TcpConnection *ptcpconn)
 
 void EchoServer::HandleMessage(TcpConnection *ptcpconn, std::string &s)
 {
-    //std::cout << "HandleMessage: " << ++cnt << std::endl;
-    //std::cout << "client msg: " << s << std::endl;
-
     //std::string msg("reply msg:");
     //msg += s;
     //s.clear();

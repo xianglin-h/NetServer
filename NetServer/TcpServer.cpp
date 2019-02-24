@@ -77,7 +77,7 @@ void TcpServer::OnNewConnection()
         ptcpconnection->SetCloseCallback(closecallback_);
         ptcpconnection->SetErrorCallback(errorcallback_);
         ptcpconnection->SetConnectionCleanUp(std::bind(&TcpServer::RemoveConnection, this, ptcpconnection));
-        tcpconnlist_[clientfd] = ptcpconnection;
+        //tcpconnlist_[clientfd] = ptcpconnection;
 
         newconnectioncallback_(ptcpconnection);
         //Bug，应该把事件添加的操作放到最后,否则bug segement fault,导致HandleMessage中的phttpsession==NULL
@@ -91,7 +91,7 @@ void TcpServer::RemoveConnection(TcpConnection *ptcpconnection)
 {
     --conncount_;
     //std::cout << "clean up connection, conncount is" << conncount_ << std::endl;   
-    tcpconnlist_.erase(ptcpconnection->fd());
+    //tcpconnlist_.erase(ptcpconnection->fd());
     delete ptcpconnection;
 }
 

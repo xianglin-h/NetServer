@@ -14,7 +14,7 @@
 #include "TcpServer.h"
 #include "TcpConnection.h"
 #include "HttpSession.h"
-
+#include "ThreadPool.h"
 
 class HttpServer
 {
@@ -28,12 +28,12 @@ private:
     void HandleError(TcpConnection *ptcpconn);
 
     TcpServer tcpserver_;
+    ThreadPool threadpool_;
     std::map<TcpConnection *, HttpSession*> httpsessionnlist_;//管理Http会话
-    long long int cnt;
     std::mutex mutex_;
 
 public:
-    HttpServer(EventLoop *loop, int port, int threadnum);
+    HttpServer(EventLoop *loop, int port, int iothreadnum, int workerthreadnum);
     ~HttpServer();
 
     void Start();

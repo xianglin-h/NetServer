@@ -18,6 +18,7 @@
 
 Channel::Channel()
 {
+    
 }
 
 Channel::~Channel()

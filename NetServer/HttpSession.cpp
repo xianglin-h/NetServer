@@ -81,6 +81,7 @@ void HttpSession::PraseHttpRequest(std::string &s)
 	}
 	else
 	{
+        std::cout << "msg" << msg << std::endl;
 		std::cout << "Error in httpPraser: http_request_line isn't complete!" << std::endl;
         //可以临时存起来，凑齐了再解析
 	}
@@ -246,4 +247,3 @@ void HttpSession::HttpError(int err_num, std::string short_msg)
     responsecontext_ += "\r\n";
     responsecontext_ += responsebody_;
 }
-

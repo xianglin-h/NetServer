@@ -25,8 +25,7 @@ public:
     int GetFd() 
     { 
         return fd_; 
-    }
-    
+    }    
     void SetEvents(uint32_t events)
     { 
         events_ = events; 
@@ -65,7 +64,5 @@ private:
     Callback errorhandler_;
     Callback closehandler_;
 };
-
-
 
 #endif

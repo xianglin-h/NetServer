@@ -9,15 +9,17 @@
 #include "HttpServer.h"
 
 
-HttpServer::HttpServer(EventLoop *loop, int port, int threadnum)
-    : tcpserver_(loop, port, threadnum),
-    cnt(0)
+HttpServer::HttpServer(EventLoop *loop, int port, int iothreadnum, int workerthreadnum)
+    : tcpserver_(loop, port, iothreadnum),
+    threadpool_(workerthreadnum)
 {
     tcpserver_.SetNewConnCallback(std::bind(&HttpServer::HandleNewConnection, this, std::placeholders::_1));
     tcpserver_.SetMessageCallback(std::bind(&HttpServer::HandleMessage, this, std::placeholders::_1, std::placeholders::_2));
     tcpserver_.SetSendCompleteCallback(std::bind(&HttpServer::HandleSendComplete, this, std::placeholders::_1));
     tcpserver_.SetCloseCallback(std::bind(&HttpServer::HandleClose, this, std::placeholders::_1));
     tcpserver_.SetErrorCallback(std::bind(&HttpServer::HandleError, this, std::placeholders::_1));
+
+    threadpool_.Start();
 }
 
 HttpServer::~HttpServer()
@@ -37,23 +39,46 @@ void HttpServer::HandleNewConnection(TcpConnection *ptcpconn)
 }
 
 void HttpServer::HandleMessage(TcpConnection *ptcpconn, std::string &s)
-{
-    //std::cout << "http num is:" << ++cnt << std::endl;  
+{ 
     HttpSession *phttpsession = NULL;
     {
         std::lock_guard <std::mutex> lock(mutex_);
         phttpsession =  httpsessionnlist_[ptcpconn];
     }    
-    //可以改造成线程池处理业务，处理完后投递回本IO线程执行send
-    phttpsession->PraseHttpRequest(s);
-    phttpsession->HttpProcess();
-    std::string msg;
-    phttpsession->AddToBuf(msg);
-    ptcpconn->Send(msg);
-    if(!phttpsession->KeepAlive())
+
+    if(threadpool_.GetThreadNum() > 0)
     {
-        //短连接，可以告诉框架层数据发完就可以关掉TCP连接，不过这里注释掉，还是交给客户端主动关闭吧
-        //ptcpconn->HandleClose();
+        //线程池处理业务，处理完后投递回本IO线程执行send
+        //std::cout << "threadpool_.AddTask" << std::endl; 
+        threadpool_.AddTask([=, &s]() {
+            if(s.empty()) return;
+            phttpsession->PraseHttpRequest(s);
+            phttpsession->HttpProcess();
+            std::string msg;
+            phttpsession->AddToBuf(msg);
+            ptcpconn->Send(msg);
+
+            if(!phttpsession->KeepAlive())
+            {
+                //短连接，可以告诉框架层数据发完就可以关掉TCP连接，不过这里注释掉，还是交给客户端主动关闭吧
+                //ptcpconn->HandleClose();
+            }
+        });        
+    }
+    else
+    {
+        //没有开启业务线程池，业务计算直接在IO线程执行
+        phttpsession->PraseHttpRequest(s);
+        phttpsession->HttpProcess();
+        std::string msg;
+        phttpsession->AddToBuf(msg);
+        ptcpconn->Send(msg);
+
+        if(!phttpsession->KeepAlive())
+        {
+            //短连接，可以告诉框架层数据发完就可以关掉TCP连接，不过这里注释掉，还是交给客户端主动关闭吧
+            //ptcpconn->HandleClose();
+        }        
     }
 }
 

@@ -28,7 +28,8 @@
 Poller::Poller(/* args */)
     : pollfd_(-1),
     eventlist_(EVENTNUM),
-    channelmap_()
+    channelmap_(),
+    mutex_()
 {
     pollfd_ = epoll_create(256);
     if(pollfd_ == -1)
@@ -65,10 +66,10 @@ void Poller::poll(ChannelList &activechannellist)
         //int fd = eventlist_[i].data.fd;
         Channel *pchannel = (Channel*)eventlist_[i].data.ptr;
         int fd = pchannel->GetFd();
-        
+
         std::map<int, Channel*>::const_iterator iter;
         {
-            std::lock_guard <std::mutex> lock(mutex_);
+            //std::lock_guard <std::mutex> lock(mutex_);
             iter = channelmap_.find(fd);
         }        
         if(iter != channelmap_.end())
@@ -100,7 +101,7 @@ void Poller::AddChannel(Channel *pchannel)
     //ev.data.fd = fd;
     ev.data.ptr = pchannel;
     {
-        std::lock_guard <std::mutex> lock(mutex_);
+        //std::lock_guard <std::mutex> lock(mutex_);
         channelmap_[fd] = pchannel;
     }      
 
@@ -121,7 +122,7 @@ void Poller::RemoveChannel(Channel *pchannel)
     ///ev.data.fd = fd;
     ev.data.ptr = pchannel;
     {
-        std::lock_guard <std::mutex> lock(mutex_);
+        //std::lock_guard <std::mutex> lock(mutex_);
         channelmap_.erase(fd);
     }    
 

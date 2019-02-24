@@ -16,7 +16,7 @@
 #include "TcpConnection.h"
 #include "EventLoopThreadPool.h"
 
-#define MAXCONNECTION 10000
+#define MAXCONNECTION 20000
 
 class TcpServer
 {

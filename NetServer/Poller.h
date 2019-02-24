@@ -23,7 +23,7 @@ public:
     std::map<int, Channel*> channelmap_;
     std::mutex mutex_;
 
-    Poller(/* args */);
+    Poller();
     ~Poller();
 
     void poll(ChannelList &activechannellist);

@@ -13,9 +13,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <thread>
 #include "Channel.h"
 #include "EventLoop.h"
-//#include "Socket.h"
 
 class TcpConnection
 {
@@ -32,6 +32,8 @@ public:
 
     void AddChannelToLoop();
     void Send(std::string &s);
+    //当前IO线程发送函数
+    void SendInLoop();
     void HandleRead();
     void HandleWrite();
     void HandleError();
@@ -58,6 +60,7 @@ public:
     {
         connectioncleanup_ = cb;
     }
+    
 private:
     /* data */
     EventLoop *loop_;
