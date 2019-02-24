@@ -19,13 +19,15 @@ A C++ High Performance NetServer (version 0.3.0)
 
 ## Build
 
-	make
-	make clean
+	$ make
+	$ make clean
 
 ## Run
-    ./httpserver [port] [iothreadnum] [workerthreadnum]
-    例：./httpserver 80 4 2 开启80端口，采用4个IO线程、2个工作线程的方式 
-    一般情况下，业务处理简单的话，工作线程数设为0即可
+	$ ./httpserver [port] [iothreadnum] [workerthreadnum]
+	
+	例：$ ./httpserver 80 4 2
+	表示开启80端口，采用4个IO线程、2个工作线程的方式 
+	一般情况下，业务处理简单的话，工作线程数设为0即可
     
 ## Tech
  * 基于epoll的IO复用机制实现Reactor模式，采用边缘触发（ET）模式，和非阻塞模式
