@@ -47,8 +47,6 @@ EventLoop::~EventLoop()
 
 void EventLoop::WakeUp()
 {
-    //char c = 'w';//太短不能触发？？
-    //write(wakeupfd_, &c, sizeof(char));
     uint64_t one = 1;
     ssize_t n = write(wakeupfd_, (char*)(&one), sizeof one);
 }

@@ -20,7 +20,7 @@ ThreadPool::ThreadPool(int threadnum)
 
 ThreadPool::~ThreadPool()
 {
-    std::cout << "~ThreadPool " << std::this_thread::get_id() << std::endl;
+    std::cout << "Clean up the ThreadPool " << std::endl;
     Stop();
     for(int i = 0; i < threadnum_; ++i)
     {
@@ -57,7 +57,7 @@ void ThreadPool::Stop()
 }
 
 void ThreadPool::AddTask(Task task)
-{
+{    
     {
         std::lock_guard<std::mutex> lock(mutex_);
         taskqueue_.push(task);
@@ -92,7 +92,17 @@ void ThreadPool::ThreadFunc()
         }
         if(task)
         {
-            task();
+            try
+            {
+                //std::cout << "ThreadPool::ThreadFunc" << std::endl;
+                task();
+            }
+            catch (std::bad_alloc& ba)
+            {
+                std::cerr << "bad_alloc caught in ThreadPool::ThreadFunc task: " << ba.what() << '\n';
+                while(1);
+            }
+            //task();//task中的IO过程可以使用协程优化，让出CPU
         }                        
     }
 }

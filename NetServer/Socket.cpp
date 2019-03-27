@@ -78,7 +78,7 @@ bool Socket::BindAddress(int serverport)
 
 bool Socket::Listen()
 {    
-	if (listen(serverfd_, 2048) < 0)
+	if (listen(serverfd_, 8192) < 0)
 	{
 		perror("error listen");
 		close(serverfd_);
@@ -95,8 +95,8 @@ int Socket::Accept(struct sockaddr_in &clientaddr)
     if (clientfd < 0) 
     {
         //perror("error accept");
-        //if(errno == EAGAIN)
-            //return 0;
+        if(errno == EAGAIN)
+            return 0;
 		//std::cout << "error accept:there is no new connection accept..." << std::endl;
         return clientfd;
 	}

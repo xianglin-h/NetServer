@@ -53,14 +53,18 @@ typedef struct _HttpResponseContext {
 class HttpSession
 {
 private:
-    /* data */
+    //解析报文相关成员
     HttpRequestContext httprequestcontext_;
-    //Http响应报文
+    bool praseresult_;
+
+    //Http响应报文相关成员
     std::string responsecontext_;
     std::string responsebody_;    
     std::string errormsg;
     std::string path_;
     std::string querystring_;
+
+    //长连接标志
     bool keepalive_;
     std::string body_buff;
 public:
@@ -68,11 +72,17 @@ public:
     HttpSession();
     ~HttpSession();
 
-    void PraseHttpRequest(std::string &s);
-    void HttpProcess();
-    void AddToBuf(std::string &s);
-    void HttpError(int err_num, std::string short_msg);
-    bool KeepAlive()
+    //解析HTTP报文
+    bool PraseHttpRequest(std::string &s, HttpRequestContext &httprequestcontext); 
+
+    //处理报文
+    void HttpProcess(HttpRequestContext &httprequestcontext, std::string &responsecontext); 
+
+    //错误消息报文组装，404等
+    void HttpError(int err_num, std::string short_msg, HttpRequestContext &httprequestcontext, std::string &responsecontext);
+    
+    //判断长连接
+    bool KeepAlive() 
     { return keepalive_;}
 };
 

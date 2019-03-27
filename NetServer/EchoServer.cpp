@@ -28,12 +28,12 @@ void EchoServer::Start()
     tcpserver_.Start();
 }
 
-void EchoServer::HandleNewConnection(TcpConnection *ptcpconn)
+void EchoServer::HandleNewConnection(const spTcpConnection& sptcpconn)
 {
     std::cout << "New Connection Come in" << std::endl;
 }
 
-void EchoServer::HandleMessage(TcpConnection *ptcpconn, std::string &s)
+void EchoServer::HandleMessage(const spTcpConnection& sptcpconn, std::string &s)
 {
     //std::string msg("reply msg:");
     //msg += s;
@@ -42,20 +42,20 @@ void EchoServer::HandleMessage(TcpConnection *ptcpconn, std::string &s)
     std::string msg;
     msg.swap(s);
     msg.insert(0, "reply msg:");
-    ptcpconn->Send(msg);
+    sptcpconn->Send(msg);
 }
 
-void EchoServer::HandleSendComplete(TcpConnection *ptcpconn)
+void EchoServer::HandleSendComplete(const spTcpConnection& sptcpconn)
 {
     //std::cout << "Message send complete" << std::endl;
 }
 
-void EchoServer::HandleClose(TcpConnection *ptcpconn)
+void EchoServer::HandleClose(const spTcpConnection& sptcpconn)
 {
     std::cout << "EchoServer conn close" << std::endl;
 }
 
-void EchoServer::HandleError(TcpConnection *ptcpconn)
+void EchoServer::HandleError(const spTcpConnection& sptcpconn)
 {
     std::cout << "EchoServer error" << std::endl;
 }

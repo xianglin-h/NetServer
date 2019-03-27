@@ -19,29 +19,32 @@ int sendn(int fd, std::string &bufferout);
 
 TcpConnection::TcpConnection(EventLoop *loop, int fd, struct sockaddr_in clientaddr)
     : loop_(loop),
+	spchannel_(new Channel()),
 	fd_(fd),
     clientaddr_(clientaddr),
 	halfclose_(false),
-	disconnected_(false)
+	disconnected_(false),
+	asyncprocessing_(false),
+	bufferin_(),
+	bufferout_()
 {
-	//创建事件类，并注册事件执行函数
-    pchannel_ = new Channel();
-    pchannel_->SetFd(fd_);
-    pchannel_->SetEvents(EPOLLIN | EPOLLET);
-    pchannel_->SetReadHandle(std::bind(&TcpConnection::HandleRead, this));
-    pchannel_->SetWriteHandle(std::bind(&TcpConnection::HandleWrite, this));
-    pchannel_->SetCloseHandle(std::bind(&TcpConnection::HandleClose, this));
-    pchannel_->SetErrorHandle(std::bind(&TcpConnection::HandleError, this));    
+	//注册事件执行函数
+    spchannel_->SetFd(fd_);
+    spchannel_->SetEvents(EPOLLIN | EPOLLET);
+    spchannel_->SetReadHandle(std::bind(&TcpConnection::HandleRead, this));
+    spchannel_->SetWriteHandle(std::bind(&TcpConnection::HandleWrite, this));
+    spchannel_->SetCloseHandle(std::bind(&TcpConnection::HandleClose, this));
+    spchannel_->SetErrorHandle(std::bind(&TcpConnection::HandleError, this));    
 }
 
 TcpConnection::~TcpConnection()
 {
 	//多线程下，加入loop的任务队列？不用，因为已经在当前loop线程
-	//移除事件
-	loop_->RemoveChannelToPoller(pchannel_);
-	delete pchannel_;
+	//移除事件,析构成员变量
+	loop_->RemoveChannelToPoller(spchannel_.get());
 	close(fd_);
 }
+
 void TcpConnection::AddChannelToLoop()
 {
 	//bug segement fault 
@@ -49,12 +52,14 @@ void TcpConnection::AddChannelToLoop()
 	//多线程下，加入loop的任务队列
 	//主线程直接执行
     //loop_->AddChannelToPoller(pchannel_);
-	loop_->AddTask(std::bind(&EventLoop::AddChannelToPoller, loop_, pchannel_));
+	loop_->AddTask(std::bind(&EventLoop::AddChannelToPoller, loop_, spchannel_.get()));
+
 }
 
 void TcpConnection::Send(std::string &s)
 {
-	bufferout_ += s;
+	//std::cout << "TcpConnection::Send" << std::endl;
+	bufferout_ += s; //跨线程消息投递成功
 	//判断当前线程是不是Loop IO线程
 	if(loop_->GetThreadId() == std::this_thread::get_id())
 	{
@@ -62,29 +67,34 @@ void TcpConnection::Send(std::string &s)
 	}
 	else
 	{
-		//不是，则是跨线程调用,加入IO线程的任务队列，唤醒
-		loop_->AddTask(std::bind(&TcpConnection::SendInLoop, this));
+		asyncprocessing_ = false; //异步调用结束
+		//std::cout << "asyncprocessing_" << std::endl;
+		loop_->AddTask(std::bind(&TcpConnection::SendInLoop, shared_from_this()));//跨线程调用,加入IO线程的任务队列，唤醒
 	}
 }
 
 void TcpConnection::SendInLoop()
 {
-    //bufferout_ += s;//copy一次
+    //bufferout_ += s;//copy一次	
+	if(disconnected_)
+	{	
+		return;
+	}
     int result = sendn(fd_, bufferout_);
     if(result > 0)
     {
-		uint32_t events = pchannel_->GetEvents();
+		uint32_t events = spchannel_->GetEvents();
         if(bufferout_.size() > 0)
         {
 			//缓冲区满了，数据没发完，就设置EPOLLOUT事件触发			
-			pchannel_->SetEvents(events | EPOLLOUT);
-			loop_->UpdateChannelToPoller(pchannel_);
+			spchannel_->SetEvents(events | EPOLLOUT);
+			loop_->UpdateChannelToPoller(spchannel_.get());
         }
 		else
 		{
 			//数据已发完
-			pchannel_->SetEvents(events & (~EPOLLOUT));
-			sendcompletecallback_(this);
+			spchannel_->SetEvents(events & (~EPOLLOUT));
+			sendcompletecallback_(shared_from_this());
 			//20190217
 			if(halfclose_)
 				HandleClose();
@@ -100,6 +110,29 @@ void TcpConnection::SendInLoop()
 	}     
 }
 
+
+void TcpConnection::Shutdown()
+{
+	if(loop_->GetThreadId() == std::this_thread::get_id())
+	{
+		ShutdownInLoop();
+	}
+	else
+	{
+		//不是IO线程，则是跨线程调用,加入IO线程的任务队列，唤醒
+		loop_->AddTask(std::bind(&TcpConnection::ShutdownInLoop, shared_from_this()));
+	}
+}
+
+void TcpConnection::ShutdownInLoop()
+{
+	if(disconnected_) {return;}
+	std::cout << "shutdown" << std::endl;
+	closecallback_(shared_from_this()); //应用层清理连接回调
+	loop_->AddTask(std::bind(connectioncleanup_, shared_from_this())); //自己不能清理自己，交给loop执行，Tcpserver清理TcpConnection
+	disconnected_ = true;
+}
+
 void TcpConnection::HandleRead()
 {
     //接收数据，写入缓冲区
@@ -108,7 +141,8 @@ void TcpConnection::HandleRead()
     //业务回调,可以利用工作线程池处理，投递任务
     if(result > 0)
     {
-        messagecallback_(this, bufferin_);//可以用右值引用优化
+        messagecallback_(shared_from_this(), bufferin_);//可以用右值引用优化
+		//bufferin_.clear();
     }
     else if(result == 0)
     {
@@ -125,18 +159,18 @@ void TcpConnection::HandleWrite()
     int result = sendn(fd_, bufferout_);
     if(result > 0)
     {
-		uint32_t events = pchannel_->GetEvents();
+		uint32_t events = spchannel_->GetEvents();
         if(bufferout_.size() > 0)
         {
 			//缓冲区满了，数据没发完，就设置EPOLLOUT事件触发			
-			pchannel_->SetEvents(events | EPOLLOUT);
-			loop_->UpdateChannelToPoller(pchannel_);
+			spchannel_->SetEvents(events | EPOLLOUT);
+			loop_->UpdateChannelToPoller(spchannel_.get());
         }
 		else
 		{
 			//数据已发完
-			pchannel_->SetEvents(events & (~EPOLLOUT));
-			sendcompletecallback_(this);
+			spchannel_->SetEvents(events & (~EPOLLOUT));
+			sendcompletecallback_(shared_from_this());
 			//发送完毕，如果是半关闭状态，则可以close了
 			if(halfclose_)
 				HandleClose();
@@ -152,14 +186,15 @@ void TcpConnection::HandleWrite()
 	}     
 }
 
+
 void TcpConnection::HandleError()
 {
 	if(disconnected_) {return;}
-	errorcallback_(this);
+	errorcallback_(shared_from_this());
 	//loop_->RemoveChannelToPoller(pchannel_);
 	//连接标记为清理
 	//task添加
-	loop_->AddTask(connectioncleanup_);
+	loop_->AddTask(std::bind(connectioncleanup_, shared_from_this())); //自己不能清理自己，交给loop执行，Tcpserver清理
 	disconnected_ = true;
 }
 
@@ -175,20 +210,20 @@ void TcpConnection::HandleClose()
 
 	//20190217 优雅关闭，发完数据再关闭
 	if(disconnected_) {return;}
-	if(bufferout_.size() > 0 || bufferin_.size() > 0)
+	if(bufferout_.size() > 0 || bufferin_.size() > 0 || asyncprocessing_)
 	{
 		//如果还有数据待发送，则先发完,设置半关闭标志位
 		halfclose_ = true;
 		//还有数据刚刚才收到，但同时又收到FIN
 		if(bufferin_.size() > 0)
 		{
-			messagecallback_(this, bufferin_);
+			messagecallback_(shared_from_this(), bufferin_);
 		}
 	}
 	else
 	{
-		loop_->AddTask(connectioncleanup_);
-		closecallback_(this);
+		loop_->AddTask(std::bind(connectioncleanup_, shared_from_this()));
+		closecallback_(shared_from_this());
 		disconnected_ = true;
 	}
 }
@@ -228,13 +263,13 @@ int recvn(int fd, std::string &bufferin)
 			{
 				//可能是RST
 				perror("recv error");
-				std::cout << "recv error" << std::endl;
+				//std::cout << "recv error" << std::endl;
 				return -1;
 			}
 		}
 		else//返回0，客户端关闭socket，FIN
 		{
-			std::cout << "client close the Socket" << std::endl;
+			//std::cout << "client close the Socket" << std::endl;
 			return 0;
 		}
     }

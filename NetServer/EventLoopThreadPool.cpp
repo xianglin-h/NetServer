@@ -21,6 +21,7 @@ EventLoopThreadPool::EventLoopThreadPool(EventLoop *mainloop, int threadnum)
 
 EventLoopThreadPool::~EventLoopThreadPool()
 {
+    std::cout << "Clean up the EventLoopThreadPool" << std::endl;
     for(int i = 0; i < threadnum_; ++i)
     {
         delete threadlist_[i];
@@ -47,7 +48,6 @@ EventLoop* EventLoopThreadPool::GetNextLoop()
 {
     if(threadnum_ > 0)
     {
-        //RR策略
         EventLoop *loop = threadlist_[index_]->GetLoop();
         index_ = (index_ + 1) % threadnum_;
         return loop;

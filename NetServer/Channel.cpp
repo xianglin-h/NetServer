@@ -18,7 +18,7 @@
 
 Channel::Channel()
 {
-    
+
 }
 
 Channel::~Channel()

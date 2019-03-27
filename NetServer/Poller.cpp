@@ -55,7 +55,7 @@ void Poller::poll(ChannelList &activechannellist)
     if(nfds == -1)
     {
         printf("error code is:%d", errno);
-        perror("epoll wait error");
+        //perror("epoll wait error");
         //exit(1);
     }
     //printf("event num:%d\n", nfds);
@@ -69,7 +69,7 @@ void Poller::poll(ChannelList &activechannellist)
 
         std::map<int, Channel*>::const_iterator iter;
         {
-            //std::lock_guard <std::mutex> lock(mutex_);
+            std::lock_guard <std::mutex> lock(mutex_);
             iter = channelmap_.find(fd);
         }        
         if(iter != channelmap_.end())
@@ -101,7 +101,7 @@ void Poller::AddChannel(Channel *pchannel)
     //ev.data.fd = fd;
     ev.data.ptr = pchannel;
     {
-        //std::lock_guard <std::mutex> lock(mutex_);
+        std::lock_guard <std::mutex> lock(mutex_);
         channelmap_[fd] = pchannel;
     }      
 
@@ -119,10 +119,10 @@ void Poller::RemoveChannel(Channel *pchannel)
     int fd = pchannel->GetFd();
     struct epoll_event ev;
     ev.events = pchannel->GetEvents();
-    ///ev.data.fd = fd;
+    ///ev.data.fd = fd
     ev.data.ptr = pchannel;
     {
-        //std::lock_guard <std::mutex> lock(mutex_);
+        std::lock_guard <std::mutex> lock(mutex_);
         channelmap_.erase(fd);
     }    
 

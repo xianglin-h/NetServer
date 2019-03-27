@@ -11,26 +11,30 @@
 #include "TcpServer.h"
 #include "EventLoop.h"
 #include "TcpConnection.h"
+#include "Timer.h"
 
 class EchoServer
 {
-private:
-    /* data */
-    //业务函数
-    void HandleNewConnection(TcpConnection *ptcpconn);
-    void HandleMessage(TcpConnection *ptcpconn, std::string &s);
-    void HandleSendComplete(TcpConnection *ptcpconn);
-    void HandleClose(TcpConnection *ptcpconn);
-    void HandleError(TcpConnection *ptcpconn);
-
-    TcpServer tcpserver_;
-
 public:
+    typedef std::shared_ptr<TcpConnection> spTcpConnection;
+    typedef std::shared_ptr<Timer> spTimer;
+
     EchoServer(EventLoop* loop, int port, int threadnum);
     ~EchoServer();
 
+    //启动服务
     void Start();
 
+private:
+    /* data */
+    //业务函数
+    void HandleNewConnection(const spTcpConnection& sptcpconn);
+    void HandleMessage(const spTcpConnection &sptcpconn, std::string &s);
+    void HandleSendComplete(const spTcpConnection& sptcpconn);
+    void HandleClose(const spTcpConnection& sptcpconn);
+    void HandleError(const spTcpConnection& sptcpconn);
+
+    TcpServer tcpserver_;
 };
 
 #endif

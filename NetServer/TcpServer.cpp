@@ -13,6 +13,7 @@
 #include <sys/epoll.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <memory>
 #include "TcpServer.h"
 
 void Setnonblocking(int fd);
@@ -20,9 +21,9 @@ void Setnonblocking(int fd);
 TcpServer::TcpServer(EventLoop* loop, int port, int threadnum)
     : serversocket_(),
     loop_(loop),
-    eventloopthreadpool(loop, threadnum),
     serverchannel_(),
-    conncount_(0)
+    conncount_(0),
+    eventloopthreadpool(loop, threadnum)
 {
     //serversocket_.SetSocketOption(); 
     serversocket_.SetReuseAddr();   
@@ -57,8 +58,8 @@ void TcpServer::OnNewConnection()
     int clientfd;
     while( (clientfd = serversocket_.Accept(clientaddr)) > 0) 
     {
-        //std::cout << "New client from IP:" << inet_ntoa(clientaddr.sin_addr) 
-        //    << ":" << ntohs(clientaddr.sin_port) << std::endl;
+        std::cout << "New client from IP:" << inet_ntoa(clientaddr.sin_addr) 
+            << ":" << ntohs(clientaddr.sin_port) << std::endl;
         
         if(++conncount_ >= MAXCONNECTION)
         {
@@ -71,28 +72,32 @@ void TcpServer::OnNewConnection()
         EventLoop *loop = eventloopthreadpool.GetNextLoop();
 
         //创建连接，注册业务函数
-        TcpConnection *ptcpconnection = new TcpConnection(loop, clientfd, clientaddr);
-        ptcpconnection->SetMessaeCallback(messagecallback_);
-        ptcpconnection->SetSendCompleteCallback(sendcompletecallback_);
-        ptcpconnection->SetCloseCallback(closecallback_);
-        ptcpconnection->SetErrorCallback(errorcallback_);
-        ptcpconnection->SetConnectionCleanUp(std::bind(&TcpServer::RemoveConnection, this, ptcpconnection));
-        //tcpconnlist_[clientfd] = ptcpconnection;
+        std::shared_ptr<TcpConnection> sptcpconnection = std::make_shared<TcpConnection>(loop, clientfd, clientaddr);
+        sptcpconnection->SetMessaeCallback(messagecallback_);
+        sptcpconnection->SetSendCompleteCallback(sendcompletecallback_);
+        sptcpconnection->SetCloseCallback(closecallback_);
+        sptcpconnection->SetErrorCallback(errorcallback_);
+        sptcpconnection->SetConnectionCleanUp(std::bind(&TcpServer::RemoveConnection, this, std::placeholders::_1));
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            tcpconnlist_[clientfd] = sptcpconnection;
+        }
+        
 
-        newconnectioncallback_(ptcpconnection);
+        newconnectioncallback_(sptcpconnection);
         //Bug，应该把事件添加的操作放到最后,否则bug segement fault,导致HandleMessage中的phttpsession==NULL
         //总之就是做好一切准备工作再添加事件到epoll！！！
-        ptcpconnection->AddChannelToLoop();
+        sptcpconnection->AddChannelToLoop();
     }
 }
 
-//连接清理
-void TcpServer::RemoveConnection(TcpConnection *ptcpconnection)
+//连接清理,bugfix:这里应该由主loop来执行，投递回主线程删除 OR 多线程加锁删除
+void TcpServer::RemoveConnection(std::shared_ptr<TcpConnection> sptcpconnection)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     --conncount_;
     //std::cout << "clean up connection, conncount is" << conncount_ << std::endl;   
-    //tcpconnlist_.erase(ptcpconnection->fd());
-    delete ptcpconnection;
+    tcpconnlist_.erase(sptcpconnection->fd());
 }
 
 void TcpServer::OnConnectionError()

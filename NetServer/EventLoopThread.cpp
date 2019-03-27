@@ -25,8 +25,9 @@ EventLoopThread::EventLoopThread()
 EventLoopThread::~EventLoopThread()
 {
     //线程结束时清理
-    loop_->Quit();
-    th_.join();
+    std::cout << "Clean up the EventLoopThread" << std::this_thread::get_id() << std::endl;
+    loop_->Quit();//停止IO线程运行
+    th_.join();//清理IO线程，防止内存泄漏，因为pthread_created回calloc
 }
 
 EventLoop* EventLoopThread::GetLoop()
@@ -50,5 +51,14 @@ void EventLoopThread::ThreadFunc()
     threadname_ += sin.str();
 
     std::cout << "in the thread:" << threadname_ << std::endl;   
-    loop_->loop();
+    try
+    {
+        //std::cout << "EventLoopThread::ThreadFunc " << std::endl;
+        loop_->loop();
+    }
+    catch (std::bad_alloc& ba)
+    {
+        std::cerr << "bad_alloc caught in EventLoopThread::ThreadFunc loop: " << ba.what() << '\n';
+    }
+    //loop_->loop();
 }

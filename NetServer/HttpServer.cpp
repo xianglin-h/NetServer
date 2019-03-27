@@ -6,8 +6,9 @@
 
 #include <iostream>
 #include <functional>
+#include <memory>
 #include "HttpServer.h"
-
+#include "TimerManager.h"
 
 HttpServer::HttpServer(EventLoop *loop, int port, int iothreadnum, int workerthreadnum)
     : tcpserver_(loop, port, iothreadnum),
@@ -19,7 +20,8 @@ HttpServer::HttpServer(EventLoop *loop, int port, int iothreadnum, int workerthr
     tcpserver_.SetCloseCallback(std::bind(&HttpServer::HandleClose, this, std::placeholders::_1));
     tcpserver_.SetErrorCallback(std::bind(&HttpServer::HandleError, this, std::placeholders::_1));
 
-    threadpool_.Start();
+    threadpool_.Start(); //工作线程池启动
+    TimerManager::GetTimerManagerInstance()->Start(); //HttpServer定时器管理器启动
 }
 
 HttpServer::~HttpServer()
@@ -27,86 +29,108 @@ HttpServer::~HttpServer()
 
 }
 
-void HttpServer::HandleNewConnection(TcpConnection *ptcpconn)
+void HttpServer::HandleNewConnection(const spTcpConnection& sptcpconn)
 {
     //std::string msg(s);
-    HttpSession *phttpsession = new HttpSession();
+    std::shared_ptr<HttpSession> sphttpsession = std::make_shared<HttpSession>(); //创建应用层会话
+    spTimer sptimer = std::make_shared<Timer>(5000, Timer::TimerType::TIMER_ONCE, std::bind(&TcpConnection::Shutdown, sptcpconn));
+    sptimer->Start();
     //可以优化成无锁，放入conn里面就行
     {
         std::lock_guard <std::mutex> lock(mutex_);
-        httpsessionnlist_[ptcpconn] = phttpsession;//LOCK
+        httpsessionnlist_[sptcpconn] = sphttpsession;
+        timerlist_[sptcpconn] = sptimer;
     }
 }
 
-void HttpServer::HandleMessage(TcpConnection *ptcpconn, std::string &s)
+void HttpServer::HandleMessage(const spTcpConnection& sptcpconn, std::string &msg)
 { 
-    HttpSession *phttpsession = NULL;
+    std::shared_ptr<HttpSession> sphttpsession;
+    spTimer sptimer;
     {
         std::lock_guard <std::mutex> lock(mutex_);
-        phttpsession =  httpsessionnlist_[ptcpconn];
-    }    
-
+        sphttpsession = httpsessionnlist_[sptcpconn];
+        sptimer = timerlist_[sptcpconn];
+    }
+    sptimer->Adjust(5000, Timer::TimerType::TIMER_ONCE, std::bind(&TcpConnection::Shutdown, sptcpconn));
+    
     if(threadpool_.GetThreadNum() > 0)
     {
+        //Bug20190320：多线程下，对象的声明周期管理问题，就像在这里，向线程池传入了phttpsession和ptcpconn，怎么知道其指向对象是否已经析构了呢？
+        //所以，需要采用智能指针来管理对象,替换原始指针
         //线程池处理业务，处理完后投递回本IO线程执行send
         //std::cout << "threadpool_.AddTask" << std::endl; 
-        threadpool_.AddTask([=, &s]() {
-            if(s.empty()) return;
-            phttpsession->PraseHttpRequest(s);
-            phttpsession->HttpProcess();
-            std::string msg;
-            phttpsession->AddToBuf(msg);
-            ptcpconn->Send(msg);
+        HttpRequestContext httprequestcontext;
+        std::string responsecontext;
+        bool result = sphttpsession->PraseHttpRequest(msg, httprequestcontext);
+        if(result == false)
+        {
+            sphttpsession->HttpError(400, "Bad request", httprequestcontext, responsecontext); //请求报文解析错误，报400
+            sptcpconn->Send(responsecontext);
+            return;
+        }  
 
-            if(!phttpsession->KeepAlive())
+        sptcpconn->SetAsyncProcessing(true);
+        threadpool_.AddTask([=]() {
+            HttpRequestContext req = httprequestcontext;
+            std::string responsecontext1;
+            sphttpsession->HttpProcess(req, responsecontext1);
+            
+            sptcpconn->Send(responsecontext1); //任务已经处理完成，执行跨线程调度，即回调
+
+            if(!sphttpsession->KeepAlive())
             {
                 //短连接，可以告诉框架层数据发完就可以关掉TCP连接，不过这里注释掉，还是交给客户端主动关闭吧
-                //ptcpconn->HandleClose();
+                //sptcpconn->HandleClose();
             }
         });        
     }
     else
     {
         //没有开启业务线程池，业务计算直接在IO线程执行
-        phttpsession->PraseHttpRequest(s);
-        phttpsession->HttpProcess();
-        std::string msg;
-        phttpsession->AddToBuf(msg);
-        ptcpconn->Send(msg);
+        HttpRequestContext httprequestcontext;
+        std::string responsecontext;
+        bool result = sphttpsession->PraseHttpRequest(msg, httprequestcontext);
+        if(result == false)
+        {
+            sphttpsession->HttpError(400, "Bad request", httprequestcontext, responsecontext); //请求报文解析错误，报400
+            sptcpconn->Send(responsecontext);
+            return;
+        }            
+        
+        sphttpsession->HttpProcess(httprequestcontext, responsecontext);
+        
+        sptcpconn->Send(responsecontext);
 
-        if(!phttpsession->KeepAlive())
+        if(!sphttpsession->KeepAlive())
         {
             //短连接，可以告诉框架层数据发完就可以关掉TCP连接，不过这里注释掉，还是交给客户端主动关闭吧
-            //ptcpconn->HandleClose();
+            //sptcpconn->HandleClose();
         }        
     }
 }
 
-void HttpServer::HandleSendComplete(TcpConnection *ptcpconn)
+void HttpServer::HandleSendComplete(const spTcpConnection& sptcpconn)
 {
 
 }
 
-void HttpServer::HandleClose(TcpConnection *ptcpconn)
+void HttpServer::HandleClose(const spTcpConnection& sptcpconn)
 {
-    HttpSession *phttpsession = NULL;
     {
         std::lock_guard <std::mutex> lock(mutex_);
-        phttpsession = httpsessionnlist_[ptcpconn];
-        httpsessionnlist_.erase(ptcpconn);//LOCK
+        httpsessionnlist_.erase(sptcpconn);
+        timerlist_.erase(sptcpconn);
     }
-    delete phttpsession;
 }
 
-void HttpServer::HandleError(TcpConnection *ptcpconn)
+void HttpServer::HandleError(const spTcpConnection& sptcpconn)
 {
-    HttpSession *phttpsession = NULL;
     {
         std::lock_guard <std::mutex> lock(mutex_);
-        phttpsession = httpsessionnlist_[ptcpconn];
-        httpsessionnlist_.erase(ptcpconn);//LOCK
+        httpsessionnlist_.erase(sptcpconn);
+        timerlist_.erase(sptcpconn);
     }
-    delete phttpsession;
 }
 
 void HttpServer::Start()
