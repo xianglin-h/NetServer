@@ -1,6 +1,6 @@
 # NetServer
 
-A C++ High Performance NetServer (version 0.4.0)
+A C++ High Performance NetServer (version 0.4.1)
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://opensource.org/licenses/MIT)
 
