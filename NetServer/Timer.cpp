@@ -4,11 +4,12 @@
 //
 //Timer类，定时器
 //
+
+#include "Timer.h"
 #include <sys/time.h>
 #include "TimerManager.h"
-#include "Timer.h"
 
-Timer::Timer(int timeout, TimerType timertype, CallBack timercallback)
+Timer::Timer(int timeout, TimerType timertype, const CallBack &timercallback)
     : timeout_(timeout),
     timertype_(timertype),
     timercallback_(timercallback),
@@ -39,7 +40,7 @@ void Timer::Stop()
     TimerManager::GetTimerManagerInstance()->RemoveTimer(this);
 }
 
-void Timer::Adjust(int timeout, Timer::TimerType timertype, Timer::CallBack timercallback)
+void Timer::Adjust(int timeout, Timer::TimerType timertype, const CallBack &timercallback)
 {
     timeout_ = timeout;
     timertype_ = timertype;

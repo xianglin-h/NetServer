@@ -44,10 +44,10 @@
 // 500：服务器内部错误 
 // 503：服务器正忙
 
+#include "HttpSession.h"
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
-#include "HttpSession.h"
 
 HttpSession::HttpSession()
     : praseresult_(false),
@@ -117,7 +117,7 @@ bool HttpSession::PraseHttpRequest(std::string &msg, HttpRequestContext &httpreq
     return praseresult;
 }
 
-void HttpSession::HttpProcess(HttpRequestContext &httprequestcontext, std::string &responsecontext)
+void HttpSession::HttpProcess(const HttpRequestContext &httprequestcontext, std::string &responsecontext)
 {
     //std::cout << "HttpServer::HttpProcess" << std::endl;
     std::string responsebody;
@@ -240,7 +240,7 @@ void HttpSession::HttpProcess(HttpRequestContext &httprequestcontext, std::strin
     responsecontext += responsebody;    
 }
 
-void HttpSession::HttpError(int err_num, std::string short_msg, HttpRequestContext &httprequestcontext, std::string &responsecontext)
+void HttpSession::HttpError(const int err_num, const std::string short_msg, const HttpRequestContext &httprequestcontext, std::string &responsecontext)
 {
     //这里string创建销毁应该会耗时间
     std::string responsebody;
@@ -251,9 +251,17 @@ void HttpSession::HttpError(int err_num, std::string short_msg, HttpRequestConte
     responsebody += std::to_string(err_num) + " " + short_msg;
     responsebody += "</h1><hr><em> Chen Shuaihao's NetServer</em>\n</body></html>";
 
+    std::string httpversion;
     if(httprequestcontext.version.empty())
-        httprequestcontext.version = "HTTP/1.1";
-    responsecontext += httprequestcontext.version + " " + std::to_string(err_num) + " " + short_msg + "\r\n";
+    {
+        httpversion = "HTTP/1.1";
+    }
+    else
+    {
+        httpversion = httprequestcontext.version;
+    }   
+        
+    responsecontext += httpversion + " " + std::to_string(err_num) + " " + short_msg + "\r\n";
     responsecontext += "Server: Chen Shuaihao's NetServer/0.1\r\n";
     responsecontext += "Content-Type: text/html\r\n";
     responsecontext += "Connection: Keep-Alive\r\n";

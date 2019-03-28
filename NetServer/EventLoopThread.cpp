@@ -4,14 +4,12 @@
 //
 //
 
-
+#include "EventLoopThread.h"
 #include <iostream>
 #include <sstream>
 //#include <queue>
 //#include <mutex>  
 //#include <condition_variable>
-#include "EventLoopThread.h"
-
 
 EventLoopThread::EventLoopThread()
     : th_(),
@@ -25,7 +23,7 @@ EventLoopThread::EventLoopThread()
 EventLoopThread::~EventLoopThread()
 {
     //线程结束时清理
-    std::cout << "Clean up the EventLoopThread" << std::this_thread::get_id() << std::endl;
+    std::cout << "Clean up the EventLoopThread id: " << std::this_thread::get_id() << std::endl;
     loop_->Quit();//停止IO线程运行
     th_.join();//清理IO线程，防止内存泄漏，因为pthread_created回calloc
 }

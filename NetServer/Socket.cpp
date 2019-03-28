@@ -3,6 +3,7 @@
 //Author: Chen Shuaihao
 //
 //
+#include "Socket.h"
 #include <iostream>
 #include <stdio.h>
 #include <unistd.h>
@@ -12,7 +13,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <cstring>
-#include "Socket.h"
 
 Socket::Socket(/* args */)
 {

@@ -22,7 +22,7 @@ public:
     ~Socket();
 
     //获取fd
-    int fd() { return serverfd_; }   
+    int fd() const { return serverfd_; }   
 
     //socket设置
     void SetSocketOption();

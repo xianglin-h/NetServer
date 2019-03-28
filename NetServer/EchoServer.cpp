@@ -3,12 +3,11 @@
 //Author: Chen Shuaihao
 //
 //
-
+#include "EchoServer.h"
 #include <iostream>
 #include <functional>
-#include "EchoServer.h"
 
-EchoServer::EchoServer(EventLoop* loop, int port, int threadnum)
+EchoServer::EchoServer(EventLoop* loop, const int port, const int threadnum)
     : tcpserver_(loop, port, threadnum)
 {
     tcpserver_.SetNewConnCallback(std::bind(&EchoServer::HandleNewConnection, this, std::placeholders::_1));

@@ -5,6 +5,7 @@
 //
 //
 
+#include "TcpServer.h"
 #include <iostream>
 #include <stdio.h>
 #include <unistd.h>
@@ -14,11 +15,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <memory>
-#include "TcpServer.h"
 
 void Setnonblocking(int fd);
 
-TcpServer::TcpServer(EventLoop* loop, int port, int threadnum)
+TcpServer::TcpServer(EventLoop* loop, const int port, const int threadnum)
     : serversocket_(),
     loop_(loop),
     serverchannel_(),

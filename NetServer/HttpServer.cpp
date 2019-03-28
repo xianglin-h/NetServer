@@ -4,13 +4,14 @@
 //
 //
 
+#include "HttpServer.h"
 #include <iostream>
 #include <functional>
 #include <memory>
-#include "HttpServer.h"
 #include "TimerManager.h"
 
-HttpServer::HttpServer(EventLoop *loop, int port, int iothreadnum, int workerthreadnum)
+
+HttpServer::HttpServer(EventLoop *loop, const int port, const int iothreadnum, const int workerthreadnum)
     : tcpserver_(loop, port, iothreadnum),
     threadpool_(workerthreadnum)
 {
@@ -72,11 +73,11 @@ void HttpServer::HandleMessage(const spTcpConnection& sptcpconn, std::string &ms
 
         sptcpconn->SetAsyncProcessing(true);
         threadpool_.AddTask([=]() {
-            HttpRequestContext req = httprequestcontext;
-            std::string responsecontext1;
-            sphttpsession->HttpProcess(req, responsecontext1);
+            //HttpRequestContext req = httprequestcontext;
+            std::string responsemsg;
+            sphttpsession->HttpProcess(httprequestcontext, responsemsg);
             
-            sptcpconn->Send(responsecontext1); //任务已经处理完成，执行跨线程调度，即回调
+            sptcpconn->Send(responsemsg); //任务已经处理完成，执行跨线程调度，即回调
 
             if(!sphttpsession->KeepAlive())
             {

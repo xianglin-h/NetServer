@@ -3,6 +3,7 @@
 //Author: Chen Shuaihao
 //
 //
+#include "TimerManager.h"
 #include <iostream>
 #include <thread>
 #include <ctime>
@@ -10,7 +11,6 @@
 #include <chrono>
 #include <unistd.h>
 #include <sys/time.h>
-#include "TimerManager.h"
 
 //初始化
 TimerManager*  TimerManager::ptimermanager_ = nullptr;

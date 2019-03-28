@@ -43,7 +43,7 @@ public:
     Timer *prev;
     Timer *next;
 
-    Timer(int timeout, TimerType timertype, CallBack timercallback);
+    Timer(int timeout, TimerType timertype, const CallBack &timercallback);
     ~Timer();
 
     //定时器启动，加入管理器
@@ -53,7 +53,7 @@ public:
     void Stop(); 
 
     //重新设置定时器
-    void Adjust(int timeout, Timer::TimerType timertype, Timer::CallBack timercallback); 
+    void Adjust(int timeout, Timer::TimerType timertype, const CallBack &timercallback); 
 
 private:
     /* data */

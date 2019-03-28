@@ -15,12 +15,12 @@
         //        epoll_data_t data;      /* User data variable */
         //    };
 
+#include "Poller.h"
 #include <iostream>
 #include <stdio.h> //perror
 #include <stdlib.h> //exit
 #include <unistd.h> //close
 #include <errno.h>
-#include "Poller.h"
 
 #define EVENTNUM 4096 //最大触发事件数量
 #define TIMEOUT 1000 //epoll_wait 超时时间设置
@@ -54,8 +54,8 @@ void Poller::poll(ChannelList &activechannellist)
     //int nfds = epoll_wait(pollfd_, &*eventlist_.begin(), (int)channelmap_.size()*0.7+1, timeout);
     if(nfds == -1)
     {
-        printf("error code is:%d", errno);
-        //perror("epoll wait error");
+        //printf("epoll_wait error code is:%d", errno);
+        perror("epoll wait error");
         //exit(1);
     }
     //printf("event num:%d\n", nfds);

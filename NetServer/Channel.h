@@ -25,7 +25,7 @@ public:
     }
 
     //获取文件描述符
-    int GetFd() 
+    int GetFd() const
     { 
         return fd_; 
     }    
@@ -37,7 +37,7 @@ public:
     }
 
     //获取触发事件
-    uint32_t GetEvents()
+    uint32_t GetEvents() const
     { 
         return events_; 
     }
@@ -46,25 +46,25 @@ public:
     void HandleEvent();
 
     //设置读事件回调
-    void SetReadHandle(Callback cb)
+    void SetReadHandle(const Callback &cb)
     {
-        readhandler_ = cb; //提高效率，可以使用move语义
+        readhandler_ = cb; //提高效率，可以使用move语义,这里暂时还是存在一次拷贝
     }
 
     //设置写事件回调
-    void SetWriteHandle(Callback cb)
+    void SetWriteHandle(const Callback &cb)
     {
         writehandler_ = cb; 
     }    
 
     //设置错误事件回调
-    void SetErrorHandle(Callback cb)
+    void SetErrorHandle(const Callback &cb)
     { 
         errorhandler_ = cb;
     }
 
     //设置close事件回调
-    void SetCloseHandle(Callback cb)
+    void SetCloseHandle(const Callback &cb)
     {
         closehandler_ = cb;
     }

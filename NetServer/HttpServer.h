@@ -27,7 +27,7 @@ public:
     //定时器的智能指针类型
     typedef std::shared_ptr<Timer> spTimer;
 
-    HttpServer(EventLoop *loop, int port, int iothreadnum, int workerthreadnum);
+    HttpServer(EventLoop *loop, const int port, const int iothreadnum, const int workerthreadnum);
     ~HttpServer();
 
     //启动Http服务器

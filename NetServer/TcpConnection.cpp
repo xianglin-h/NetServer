@@ -4,20 +4,20 @@
 //
 //TcpConnection类，表示客户端连接
 
+#include "TcpConnection.h"
 #include <stdio.h>
 #include <iostream>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
 #include <unistd.h>
-#include "TcpConnection.h"
 
 #define BUFSIZE 4096
 
 int recvn(int fd, std::string &bufferin);
 int sendn(int fd, std::string &bufferout);
 
-TcpConnection::TcpConnection(EventLoop *loop, int fd, struct sockaddr_in clientaddr)
+TcpConnection::TcpConnection(EventLoop *loop, int fd, const struct sockaddr_in &clientaddr)
     : loop_(loop),
 	spchannel_(new Channel()),
 	fd_(fd),
@@ -56,7 +56,7 @@ void TcpConnection::AddChannelToLoop()
 
 }
 
-void TcpConnection::Send(std::string &s)
+void TcpConnection::Send(const std::string &s)
 {
 	//std::cout << "TcpConnection::Send" << std::endl;
 	bufferout_ += s; //跨线程消息投递成功

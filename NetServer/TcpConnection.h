@@ -29,21 +29,21 @@ public:
     typedef std::function<void(const spTcpConnection&, std::string&)> MessageCallback;
     //typedef std::function<void()> TaskCallback;.
 
-    TcpConnection(EventLoop *loop, int fd, struct sockaddr_in clientaddr);
+    TcpConnection(EventLoop *loop, int fd, const struct sockaddr_in &clientaddr);
     ~TcpConnection();
 
     //获取当前连接的fd
-    int fd()
+    int fd() const
     { return fd_; }
 
     //获取当前连接所属的loop
-    EventLoop* GetLoop() { return loop_; }
+    EventLoop* GetLoop() const { return loop_; }
 
     //添加本连接对应的事件到loop
     void AddChannelToLoop();
 
     //发送数据的函数
-    void Send(std::string &s); 
+    void Send(const std::string &s); 
 
     //在当前IO线程发送数据函数
     void SendInLoop(); 
@@ -64,37 +64,37 @@ public:
     void HandleClose(); 
 
     //设置收到数据回调函数
-    void SetMessaeCallback(MessageCallback cb)
+    void SetMessaeCallback(const MessageCallback &cb)
     {
         messagecallback_ = cb;
     }
 
     //设置发送完数据的回调函数
-    void SetSendCompleteCallback(Callback cb)
+    void SetSendCompleteCallback(const Callback &cb)
     {
         sendcompletecallback_ = cb;
     }
 
     //设置连接关闭的回调函数
-    void SetCloseCallback(Callback cb)
+    void SetCloseCallback(const Callback &cb)
     {
         closecallback_ = cb;
     }
 
     //设置连接异常的回调函数
-    void SetErrorCallback(Callback cb)
+    void SetErrorCallback(const Callback &cb)
     {
         errorcallback_ = cb;
     }
 
     //设置连接清理函数
-    void SetConnectionCleanUp(Callback cb)
+    void SetConnectionCleanUp(const Callback &cb)
     {
         connectioncleanup_ = cb;
     }
 
     //设置异步处理标志，开启工作线程池的时候使用
-    void SetAsyncProcessing(bool asyncprocessing)
+    void SetAsyncProcessing(const bool asyncprocessing)
     {
         asyncprocessing_ = asyncprocessing;
     }

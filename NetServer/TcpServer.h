@@ -29,7 +29,7 @@ public:
     typedef std::function<void(const spTcpConnection&, std::string&)> MessageCallback;
     typedef std::function<void(const spTcpConnection&)> Callback;
 
-    TcpServer(EventLoop* loop, int port, int threadnum = 0);
+    TcpServer(EventLoop* loop, const int port, const int threadnum = 0);
     ~TcpServer();
 
     //启动ＴＣＰ服务器
@@ -37,31 +37,31 @@ public:
 
     //业务函数注册
     //注册新连接回调函数
-    void SetNewConnCallback(Callback cb)
+    void SetNewConnCallback(const Callback &cb)
     {
         newconnectioncallback_ = cb; 
     }
 
     //注册数据回调函数
-    void SetMessageCallback(MessageCallback cb)
+    void SetMessageCallback(const MessageCallback &cb)
     {
         messagecallback_ = cb;
     }
 
     //注册数据发送完成回调函数
-    void SetSendCompleteCallback(Callback cb)
+    void SetSendCompleteCallback(const Callback &cb)
     { 
         sendcompletecallback_ = cb; 
     }
 
     //注册连接关闭回调函数
-    void SetCloseCallback(Callback cb)
+    void SetCloseCallback(const Callback &cb)
     {
         closecallback_ = cb;
     }  
 
     //注册连接异常回调函数  
-    void SetErrorCallback(Callback cb)
+    void SetErrorCallback(const Callback &cb)
     { 
         errorcallback_ = cb;
     }

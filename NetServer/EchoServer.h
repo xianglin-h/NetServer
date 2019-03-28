@@ -19,7 +19,7 @@ public:
     typedef std::shared_ptr<TcpConnection> spTcpConnection;
     typedef std::shared_ptr<Timer> spTimer;
 
-    EchoServer(EventLoop* loop, int port, int threadnum);
+    EchoServer(EventLoop* loop, const int port, const int threadnum);
     ~EchoServer();
 
     //启动服务

@@ -55,7 +55,7 @@ public:
     }
 
     //获取loop所在线程id
-    std::thread::id GetThreadId()
+    std::thread::id GetThreadId() const
     {
         return tid_;
     }

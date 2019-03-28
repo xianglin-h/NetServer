@@ -76,10 +76,10 @@ public:
     bool PraseHttpRequest(std::string &s, HttpRequestContext &httprequestcontext); 
 
     //处理报文
-    void HttpProcess(HttpRequestContext &httprequestcontext, std::string &responsecontext); 
+    void HttpProcess(const HttpRequestContext &httprequestcontext, std::string &responsecontext); 
 
     //错误消息报文组装，404等
-    void HttpError(int err_num, std::string short_msg, HttpRequestContext &httprequestcontext, std::string &responsecontext);
+    void HttpError(const int err_num, const std::string short_msg, const HttpRequestContext &httprequestcontext, std::string &responsecontext);
     
     //判断长连接
     bool KeepAlive() 
