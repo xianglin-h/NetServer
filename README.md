@@ -36,8 +36,8 @@ A C++ High Performance NetServer (version 0.5.0)
  * 线程模型将划分为主线程、IO线程和worker线程，主线程接收客户端连接（accept），并通过Round-Robin策略分发给IO线程，IO线程负责连接管理（即事件监听和读写操作），worker线程负责业务计算任务（即对数据进行处理，应用层处理复杂的时候可以开启）
  * 基于时间轮实现定时器功能，定时剔除不活跃连接，时间轮的插入、删除复杂度为O(1)，执行复杂度取决于每个桶上的链表长度
  * 采用智能指针管理多线程下的对象资源
- * 增加简易协程实现，目前版本基于ucontext.h（供了解学习，尚未应用到本项目中）
- * 增加简易C++异步日志库
+ * 增加简易协程实现，目前版本基于ucontext.h（供了解学习，尚未应用到本项目中）From: [simple-coroutine](https://github.com/chenshuaihao/simple-coroutine)
+ * 增加简易C++异步日志库 From: [simple-log](https://github.com/chenshuaihao/simple-log)
  * 支持HTTP长连接
  * 支持优雅关闭连接
    * 通常情况下，由客户端主动发起FIN关闭连接
