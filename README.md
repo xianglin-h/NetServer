@@ -104,7 +104,7 @@ See [LICENSE](https://github.com/chenshuaihao/NetServer/blob/master/LICENSE)
 * 2019-03-17 Dev: 基于时间轮实现定时器功能，定时剔除不活跃连接，时间轮的插入、删除复杂度为O(1)，执行复杂度取决于每个桶上的链表长度
 * 2019-03-27 Dev&Fix: 把部分关键的原始指针改成智能指针，解决多线程下资源访问引起的内存问题；修复一些内存问题（段错误、double free等）；添加注释
 * 2019-03-28 Fix: 头文件包含次序调整；部分函数参数加const修饰和改为引用传递，提高程序效率
-* 2020-01-17 Dev: 增加了简易协程实现（基于ucontext.h）和简易的异步日志库，不过目前尚未应用到本项目中（供了解学习），来自我的另外两个小轮子[simple-coroutine](https://github.com/chenshuaihao/simple-coroutine)、[simple-log](https://github.com/chenshuaihao/simple-log)
+* 2020-01-17 Dev: 增加了简易协程实现（基于ucontext.h）和简易的异步日志库，不过目前尚未应用到本项目中（供了解学习），来自我的另外两个小轮子 [simple-coroutine](https://github.com/chenshuaihao/simple-coroutine)、[simple-log](https://github.com/chenshuaihao/simple-log)
 
 ## Others
 本项目将一直进行开发和维护，也非常欢迎各位小伙伴提出建议，共同学习，共同进步！
